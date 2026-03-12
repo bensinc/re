@@ -1,0 +1,24 @@
+GEM
+  remote: https://rubygems.org/
+  specs:
+    bubbles (0.1.1)
+      bubbletea
+      harmonica
+      lipgloss
+    bubbletea (0.1.3)
+      lipgloss (~> 0.1)
+    bubbletea (0.1.3-arm64-darwin)
+      lipgloss (~> 0.1)
+    harmonica (0.1.1)
+    lipgloss (0.2.2)
+    lipgloss (0.2.2-arm64-darwin)
+
+PLATFORMS
+  arm64-darwin-24
+  ruby
+
+DEPENDENCIES
+  bubbles
+
+BUNDLED WITH
+   2.5.11
