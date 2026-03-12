@@ -1,0 +1,603 @@
+Starting...
+Starting...
+Starting -- Window size: 35, 186
+Starting -- Window size: 186, 35
+Starting -- Window size: 186, 35
+Starting -- Window size: 186, 35
+Starting -- Window size: 186, 35
+Starting -- Window size: 186, 35
+Starting -- Window size: 186, 35
+Starting -- Window size: 186, 35
+Insert: 0, 2, 
+Insert newline
+Insert: 0, 3, 
+Insert newline
+Insert: 4, 4, 
+Insert newline
+Starting -- Window size: 186, 35
+Insert newline
+0
+Starting -- Window size: 186, 35
+Insert newline
+Hello, 
+ world!
+Starting -- Window size: 186, 35
+Insert newline
+Hello, 
+ world!
+Insert newline
+ 
+ world!
+Insert newline
+test 
+ 
+Insert newline
+sdfds
+
+Insert newline
+
+
+Starting -- Window size: 186, 35
+Insert newline
+Hello, 
+ world!
+Insert newline
+Hell
+lo, world!
+Insert newline
+Thi
+is is a test!
+Insert newline
+This is asdfsdfsdf t
+test!
+Insert newline
+This is
+s asdfsdfsdf test!
+Insert newline
+This 
+ is asdfsdfsdf test!
+Starting -- Window size: 186, 35
+Insert newline
+This 
+ is a test!
+Insert newline
+H
+Hello, world!
+Insert newline
+Hello, wo
+orld!
+Starting -- Window size: 186, 35
+Insert newline
+Hel
+lo, world!
+Insert newline
+lo, world!
+lo, world!
+Insert newline
+lo, world!
+lo, world!
+Insert newline
+lo,test
+ world!
+Insert newline
+lo, world!
+lo, world!
+Insert newline
+l
+o, world!
+Starting -- Window size: 186, 35
+Insert newline
+Hello, world!
+Hello, world!
+Insert newline
+Hello, world!
+Hello, world
+Insert newline
+Hel
+lo, world
+Starting -- Window size: 186, 35
+Insert newline
+Hello, world!
+Hello, world!
+Starting -- Window size: 186, 35
+Insert newline
+
+Hello, world!
+Insert newline
+
+
+Starting -- Window size: 186, 35
+Insert newline
+
+
+Insert newline
+
+
+Starting -- Window size: 186, 35
+Insert newline
+
+Hello, world!
+Insert newline
+
+
+Insert newline
+
+
+Starting -- Window size: 186, 35
+Starting -- Window size: 186, 35
+Insert newline
+This is a test!
+This is a test!
+Insert newline
+This
+ is a test!
+Insert newline
+T
+his is a test!
+Insert newline
+his is a test!
+
+Starting -- Window size: 186, 35
+Insert newline
+This is a test!
+
+Insert newline
+This is a test!
+This is a test!
+Starting -- Window size: 186, 35
+Insert newline
+Insert newline
+Insert newline
+Starting -- Window size: 186, 35
+Render
+Render
+Render
+Render
+Render
+Render
+Render
+Render
+Render
+Render
+Render
+Render
+Render
+Render
+Render
+Render
+Render
+Render
+Render
+Render
+Render
+Render
+Render
+Insert newline
+Hel
+lo, world!
+Render
+Render
+Render
+Render
+Insert newline
+Render
+Render
+Starting -- Window size: 186, 35
+Render
+Render
+Render
+Render
+Render
+Insert newline
+Render
+Render
+Insert newline
+Render
+Render
+Insert newline
+Render
+Render
+Starting -- Window size: 186, 35
+Render
+Render
+Render
+Insert newline
+Render
+Render
+Starting -- Window size: 186, 35
+Render
+Render
+Render
+Render
+Render
+Insert newline
+Render
+Render
+Insert newline
+Render
+Render
+Insert newline
+Render
+Render
+Starting -- Window size: 186, 35
+Render
+Render
+Render
+Insert newline
+Render
+Render
+Render
+Render
+Render
+Render
+Render
+Render
+Render
+Render
+Render
+Render
+Render
+Render
+Render
+Render
+Render
+Render
+Render
+Render
+Render
+Render
+Render
+Render
+Render
+Render
+Render
+Render
+Insert newline
+Render
+Render
+Render
+Render
+Insert newline
+Render
+Render
+Render
+Render
+Render
+Render
+Insert newline
+Render
+Render
+Render
+Render
+Insert newline
+Render
+Render
+Starting -- Window size: 186, 35
+Render
+Render
+Render
+Render
+Render
+Insert newline
+Render
+Render
+Render
+Render
+Render
+Render
+Render
+Render
+Render
+Render
+Render
+Render
+Insert newline
+Test
+
+Render
+Render
+Render
+Render
+Render
+Render
+Render
+Render
+Render
+Render
+Render
+Render
+Render
+Render
+Render
+Render
+Render
+Render
+Render
+Render
+Render
+Render
+Insert newline
+He
+llo!
+Render
+Render
+Insert newline
+Render
+Render
+Render
+Render
+Insert newline
+Render
+Render
+Insert newline
+Render
+Render
+Insert newline
+Render
+Render
+Insert newline
+Render
+Render
+Render
+Render
+Render
+Render
+Render
+Render
+Render
+Render
+Render
+Render
+Insert newline
+Render
+Render
+Insert newline
+Render
+Render
+Insert newline
+Render
+Render
+Render
+Render
+Render
+Render
+Render
+Render
+Render
+Render
+Render
+Render
+Insert newline
+Render
+Render
+Render
+Render
+Render
+Render
+Render
+Render
+Render
+Render
+Render
+Render
+Render
+Render
+Render
+Render
+Render
+Render
+Render
+Render
+Render
+Render
+Render
+Render
+Render
+Render
+Insert newline
+
+[3~[3~[3~[3~
+Render
+Render
+Render
+Render
+Render
+Render
+Render
+Render
+Insert newline
+Render
+Render
+Render
+Render
+Render
+Render
+Render
+Render
+Render
+Render
+Render
+Render
+Insert newline
+[
+3~[3~[3~[3~
+Render
+Render
+Render
+Render
+Render
+Render
+Render
+Render
+Insert newline
+H
+e
+Render
+Render
+Insert newline
+Render
+Render
+Insert newline
+Render
+Render
+Insert newline
+Render
+Render
+Insert newline
+Render
+Render
+Insert newline
+Render
+Render
+Insert newline
+Render
+Render
+Insert newline
+Render
+Render
+Insert newline
+Render
+Render
+Insert newline
+Render
+Render
+Insert newline
+Render
+Render
+Insert newline
+Render
+Render
+Insert newline
+Render
+Render
+Insert newline
+Render
+Render
+Render
+Render
+Render
+Render
+Render
+Render
+Render
+Render
+Render
+Render
+Render
+Render
+Render
+Render
+Render
+Render
+Render
+Render
+Render
+Render
+Render
+Render
+Render
+Render
+Render
+Render
+Render
+Render
+Render
+Render
+Render
+Render
+Render
+Render
+Render
+Render
+Render
+Render
+Render
+Render
+Render
+Render
+Render
+Render
+Render
+Render
+Render
+Render
+Render
+Render
+Render
+Render
+Render
+Render
+Render
+Render
+Render
+Render
+Render
+Render
+Render
+Render
+Render
+Render
+Render
+Render
+Render
+Render
+Render
+Render
+Render
+Render
+Render
+Render
+Render
+Render
+Render
+Render
+Render
+Render
+Render
+Render
+Render
+Render
+Render
+Render
+Render
+Render
+Render
+Render
+Render
+Render
+Render
+Render
+Render
+Render
+Render
+Render
+Render
+Render
+Starting -- Window size: 186, 35
+Insert newline
+Insert newline
+Insert newline
+Starting -- Window size: 186, 35
+Insert newline
+Insert newline
+Insert newline
+Insert newline
+Insert newline
+Insert newline
+Insert newline
+Starting -- Window size: 186, 35
+Insert newline
+sdfsdfd
+
+Insert newline
+Insert newline
+Insert newline
+Insert newline
+Insert newline
+Insert newline
+Insert newline
+sdfsdf
+
+Insert newline
+Insert newline
+Insert newline

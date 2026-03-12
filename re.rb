@@ -1,7 +1,21 @@
 require 'io/console'
 
 
+$debug = true
+
+def log(s)
+  if $debug
+    @log = File.open("log.txt", "a")
+    @log.puts s 
+    @log.close
+  end
+end
+
+
 rows, cols = $stdout.winsize
+
+
+log("Starting -- Window size: #{cols}, #{rows}")
 
 file = ""
 
@@ -21,7 +35,7 @@ class Display
   end
 
   def move_cursor(x, y)
-    print "\e[#{y};#{x}H"   
+    print "\e[#{y};#{x}H"
   end
 end
 
@@ -37,12 +51,29 @@ class Buffer
 
     end
   end
+
+  def insert(x, y, c)
+    if c == "\n"
+      log("Insert newline")
+      if x == 0
+        @data.insert(y, "\n")
+      else
+        parts = [@data[y][0..x-1], @data[y][x..-1]]
+
+        log(parts)
+      
+        @data.insert(y+1, parts[1])
+        @data[y] = parts[0]
+      end
+    else
+      @data[y].insert(x, c)
+    end
+  end
 end
 
 class Cursor
 
-  attr_accessor :x
-  attr_accessor :y
+  attr_accessor :x, :y
 
   def initialize(x = 0, y = 0)
     @x = x
@@ -59,12 +90,18 @@ class Cursor
       @x -= 1
     when :right
       @x += 1
+    when :first
+      @x = 0
+    when :home
+      @x = 0
+      @y = 0
     end
   end
 end
 
 class BufferDisplay
   attr_accessor :cursor
+
   def initialize(display, buffer)
     @display = display
     @buffer = buffer
@@ -74,8 +111,13 @@ class BufferDisplay
   end
 
   def insert(c)
-    @buffer.data[@cursor.y].insert(@cursor.x, c)
-    @cursor.move(:right)
+    @buffer.insert(@cursor.x, @cursor.y, c)
+    if c == "\n"
+      @cursor.move(:down)
+      @cursor.move(:first)
+    else
+      @cursor.move(:right)
+    end
   end
 
   def draw_box(x, y, width, height)
@@ -104,12 +146,15 @@ class BufferDisplay
      start_y = 1
      x = @position[0] + start_x
      y = @position[1] + start_y
+
      @buffer.data.each do |line|
        line.chars.each_slice(@size[0]-2).map(&:join).each do |wrapped_line|
          @display.write_at(x, y, wrapped_line)
          y += 1
         end
+       break if y > @size[1]
      end
+
      move_cursor
   end
 
@@ -129,6 +174,7 @@ end
 
 
 def display
+  # log("Render")
   @display.clear_screen
   @display.write_at(1, 1, "[re editor] [#{@buffer_display.cursor.x}, #{@buffer_display.cursor.y}]")
   @buffer_display.render
@@ -163,6 +209,8 @@ loop do
   case key
   when :left, :right, :up, :down
     @buffer_display.cursor.move(key)
+  when :enter
+    @buffer_display.insert("\n")
   else
     @buffer_display.insert(key) 
   end
