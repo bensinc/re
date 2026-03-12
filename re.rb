@@ -3,19 +3,21 @@ require 'io/console'
 
 $debug = true
 
+$status_message = ""
+
 def log(s)
   if $debug
-    @log = File.open("log.txt", "a")
+    @log = File.open("log.txt", "w")
     @log.puts s 
     @log.close
   end
 end
 
 
-rows, cols = $stdout.winsize
+$rows, $cols = $stdout.winsize
 
 
-log("Starting -- Window size: #{cols}, #{rows}")
+log("Starting -- Window size: #{$cols}, #{$rows}")
 
 file = ""
 
@@ -45,6 +47,7 @@ class Buffer
   def initialize(file = nil)
     @data = []
     if file
+      @path = file
       File.readlines(file, chomp: false).each do |line|
         @data << line
       end
@@ -58,7 +61,7 @@ class Buffer
       if x == 0
         @data.insert(y, "\n")
       else
-        parts = [@data[y][0..x-1], @data[y][x..-1]]
+        parts = [@data[y][0..x], @data[y][x..-1]]
 
         log(parts)
       
@@ -68,6 +71,20 @@ class Buffer
     else
       @data[y].insert(x, c)
     end
+  end
+  
+  def remove(x, y)
+    @data[y].slice!(x)
+    @data.delete_at(y) if @data[y] == ""
+  end
+  
+  def save
+    f = File.open(@path, "w")
+    @data.each do |line|
+      f.puts line
+    end
+    f.close
+    return true
   end
 end
 
@@ -96,6 +113,7 @@ class Cursor
       @x = 0
       @y = 0
     end
+    
   end
 end
 
@@ -106,8 +124,11 @@ class BufferDisplay
     @display = display
     @buffer = buffer
     @cursor = Cursor.new
-    @size = [30, 10]
-    @position = [5, 5]
+    @size = [$rows - 2, $cols]
+    @position = [0, 2]
+    @top_line = 0
+    @gutter_width = @buffer.data.length.to_s.length + 1
+
   end
 
   def insert(c)
@@ -118,6 +139,11 @@ class BufferDisplay
     else
       @cursor.move(:right)
     end
+  end
+  
+  def backspace
+    @buffer.remove(@cursor.x, @cursor.y)
+    cursor.move(:left)  
   end
 
   def draw_box(x, y, width, height)
@@ -141,25 +167,56 @@ class BufferDisplay
   end
 
   def render
-     draw_box(@position[0], @position[1], @size[0], @size[1]) 
+     # draw_box(@position[0], @position[1], @size[0], @size[1]) 
      start_x = 1
      start_y = 1
      x = @position[0] + start_x
      y = @position[1] + start_y
-
-     @buffer.data.each do |line|
-       line.chars.each_slice(@size[0]-2).map(&:join).each do |wrapped_line|
-         @display.write_at(x, y, wrapped_line)
+     
+     @gutter_width = @buffer.data.length.to_s.length + 1
+    
+     log("Rendering buffer from #{@top_line} to #{@size[1] + @top_line}") 
+     
+     lines_rendered = 0 
+     @buffer.data[@top_line..@top_line + @size[1]].each do |line|
+       line.chars.each_slice(@size[0]-@gutter_width).map(&:join).each do |wrapped_line|
+         # log("Writing: #{wrapped_line}")
+         gutter = lines_rendered.to_s.rjust(@gutter_width)
+         @display.write_at(x, y, "\e[2m#{gutter}\e[0m #{wrapped_line}")
          y += 1
+         lines_rendered += 1
+         if lines_rendered >= @size[1]-2
+           # log "Breaking with #{lines_rendered}"
+          end
         end
-       break if y > @size[1]
      end
 
      move_cursor
   end
 
   def move_cursor
-    @display.move_cursor(@position[0] + @cursor.x + 1, @position[1] + @cursor.y + 1)
+    @cursor.x = 0 if @cursor.x < 0
+    @cursor.y = 0 if @cursor.y < 0
+    
+    # log "Length: #{@buffer.data.length}"
+    
+    @cursor.y = @buffer.data.length - 1 if @cursor.y > @buffer.data.length - 1
+    
+    # log "Cursor line: #{@buffer.data[@cursor.y]} (#{@buffer.data[@cursor.y].length})"
+    
+    @cursor.x = @buffer.data[@cursor.y].length - 1 if @cursor.x > @buffer.data[@cursor.y].length - 1
+    
+    @display.move_cursor(@position[0] + @cursor.x + @gutter_width + 2, @position[1] + @cursor.y + 1)
+  end
+  
+  def save(filename = nil)
+    if @buffer.save
+      $status_message = "Saved!"
+    else
+      $status_message = "Error saving!"
+    end
+    
+    
   end
 
 end
@@ -176,7 +233,12 @@ end
 def display
   # log("Render")
   @display.clear_screen
-  @display.write_at(1, 1, "[re editor] [#{@buffer_display.cursor.x}, #{@buffer_display.cursor.y}]")
+  @display.write_at(1, 1, "[re editor] [#{@buffer_display.cursor.x}, #{@buffer_display.cursor.y}] #{$status_message}")
+  @display.write_at(1, 2, "─" * $cols)
+  @display.write_at(1, $rows, "─" * $cols)
+  
+  # $status_message = ""
+
   @buffer_display.render
 end
 
@@ -194,6 +256,7 @@ def read_key
       when "\e"       then :escape
       when "\u0003"   then :ctrl_c
       when "\u007F"   then :backspace
+      when "\u0013"   then :ctrl_s
       else input
       end
     end
@@ -211,6 +274,10 @@ loop do
     @buffer_display.cursor.move(key)
   when :enter
     @buffer_display.insert("\n")
+  when :backspace
+    @buffer_display.backspace
+  when :ctrl_s
+    @buffer_display.save
   else
     @buffer_display.insert(key) 
   end
