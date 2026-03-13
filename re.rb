@@ -3,7 +3,17 @@ require 'io/console'
 
 $debug = true
 
+$mode = :normal
+
+$repeat_count = ""
+
 $status_message = ""
+
+$last_key = nil 
+
+$replace_mode = false
+
+$command = ""
 
 def log(s)
   if $debug
@@ -20,6 +30,11 @@ $rows, $cols = $stdout.winsize
 log("Starting -- Window size: #{$cols}, #{$rows}")
 
 file = ""
+
+Signal.trap("SIGWINCH") do
+  $rows, $cols = $stdout.winsize
+  display
+end
 
 class Display
   def clear_screen
@@ -78,6 +93,15 @@ class Buffer
     @data.delete_at(y) if @data[y] == ""
   end
   
+  def replace_char(x, y, c)
+    @data[y][x] = c
+  end
+
+  
+  def remove_line(y)
+    @data.delete_at(y)
+  end
+  
   def save
     f = File.open(@path, "w")
     @data.each do |line|
@@ -113,7 +137,11 @@ class Cursor
       @x = 0
       @y = 0
     end
-    
+  end
+  
+  def set_mode(mode)
+    print "\e[6 q"   if mode == :pipe
+    print "\e[2 q"   if mode == :block
   end
 end
 
@@ -144,6 +172,22 @@ class BufferDisplay
   def backspace
     @buffer.remove(@cursor.x, @cursor.y)
     cursor.move(:left)  
+  end
+  
+  def remove_char
+    @buffer.remove(@cursor.x, @cursor.y)
+  end
+  
+  def replace_char(c)
+    @buffer.replace_char(@cursor.x, @cursor.y, c)
+  end
+  
+  def remove_line
+    @buffer.remove_line(@cursor.y)
+  end
+  
+  def move_cursor_to_end
+    @cursor.x = @buffer.data[@cursor.y].length
   end
 
   def draw_box(x, y, width, height)
@@ -209,6 +253,11 @@ class BufferDisplay
     @display.move_cursor(@position[0] + @cursor.x + @gutter_width + 2, @position[1] + @cursor.y + 1)
   end
   
+  def set_mode(mode)
+    $mode = mode
+    @cursor.set_mode($mode == :insert ? :pipe : :block)
+  end
+  
   def save(filename = nil)
     if @buffer.save
       $status_message = "Saved!"
@@ -235,7 +284,20 @@ def display
   @display.clear_screen
   @display.write_at(1, 1, "[re editor] [#{@buffer_display.cursor.x}, #{@buffer_display.cursor.y}] #{$status_message}")
   @display.write_at(1, 2, "─" * $cols)
-  @display.write_at(1, $rows, "─" * $cols)
+ 
+  if $mode == :command 
+    modeline = "[command: #{$command}]"
+  else
+    modeline = "[#{$mode.to_s}]─"
+  end
+  
+  modeline << "(#{$repeat_count})─" if $repeat_count != ""
+  
+  
+  modeline += "─" * ($cols - modeline.length)
+  
+  @display.write_at(1, $rows, modeline)
+  
   
   # $status_message = ""
 
@@ -263,24 +325,95 @@ def read_key
   end
 end
 
+def repeater(&block)
+  [($repeat_count.to_i), 1].max.times { block.call }
+  $repeat_count = ""
+end
+
+def execute_command
+  case $command
+  when "w"
+    @buffer_display.save
+  when "q"
+    exit
+  end
+end
+
 loop do
   display
   key = read_key
   # puts "Got: #{key.inspect}"
   break if key == :ctrl_c
-
-  case key
-  when :left, :right, :up, :down
-    @buffer_display.cursor.move(key)
-  when :enter
-    @buffer_display.insert("\n")
-  when :backspace
-    @buffer_display.backspace
-  when :ctrl_s
-    @buffer_display.save
-  else
-    @buffer_display.insert(key) 
+ 
+  if $replace_mode
+    if key.is_a?(String) && key.length == 1 && key.match?(/[[:print:]]/)
+     @buffer_display.replace_char(key)
+    end
+   $replace_mode = false
+  elsif $mode == :command
+    case key
+    when :escape
+      $mode = :normal
+    when :enter
+      execute_command
+      $mode = :normal
+    when :backspace
+      $command.chop!
+    else
+      $command << key if key.is_a?(String) && key.length == 1 && key.match?(/[[:print:]]/)
+    end
+  elsif $mode == :normal
+    case key
+    when :left, :right, :up, :down
+      @buffer_display.cursor.move(key)
+    when ":"
+      $mode = :command
+      $command = ""
+    when :ctrl_s
+      @buffer_display.save
+    when "i"
+      @buffer_display.set_mode(:insert)
+    when "a"
+      @buffer_display.cursor.move(:right)
+      @buffer_display.set_mode(:insert)
+    when "A"
+      @buffer_display.move_cursor_to_end
+      @buffer_display.set_mode(:insert)      
+    when "0".."9"
+      $repeat_count = "#{$repeat_count}#{key}"
+      $repeat_count = "" if $repeat_count == "0"
+    when :escape
+      $repeat_count = ""
+    when "x"
+      repeater { @buffer_display.remove_char }
+    when "d"
+      if $last_key == "d"
+        repeater { @buffer_display.remove_line }
+        $last_key = nil
+      else
+        $last_key = "d"
+      end
+    when "r"
+      $replace_mode = true
+    else
+      
+    end
+  elsif $mode == :insert
+    case key
+    when :left, :right, :up, :down
+      @buffer_display.cursor.move(key)
+    when :enter
+      @buffer_display.insert("\n")
+    when :backspace
+      @buffer_display.backspace
+    when :escape
+      @buffer_display.set_mode(:normal)
+    else
+      @buffer_display.insert(key) 
+    end    
   end
+  
+  
   display
 
 
