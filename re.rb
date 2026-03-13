@@ -3,17 +3,22 @@ require 'io/console'
 
 $debug = true
 
-$mode = :normal
+class Editor
+  attr_accessor :mode, :repeat_count, :status_message, :command, :operator
 
-$repeat_count = ""
+  def initialize
+    @mode = :normal
+    @repeat_count = ""
+    @status_message = ""
+    @command = ""
+    @operator = nil
+  end
 
-$status_message = ""
-
-$last_key = nil 
-
-$replace_mode = false
-
-$command = ""
+  def repeater(&block)
+    [(@repeat_count.to_i), 1].max.times { block.call }
+    @repeat_count = ""
+  end
+end
 
 def log(s)
   if $debug
@@ -148,15 +153,47 @@ end
 class BufferDisplay
   attr_accessor :cursor
 
-  def initialize(display, buffer)
+  def initialize(display, buffer, editor)
     @display = display
     @buffer = buffer
+    @editor = editor
     @cursor = Cursor.new
-    @size = [$rows - 2, $cols]
+    @size = [$cols, $rows - 2]
     @position = [0, 2]
-    @top_line = 0
+    @top_row = 0
     @gutter_width = @buffer.data.length.to_s.length + 1
+    @screen_map = []
+  end
 
+  def content_width
+    @size[0] - @gutter_width - 2
+  end
+
+  def visible_rows
+    @size[1] - 2
+  end
+
+  def build_screen_map
+    @gutter_width = @buffer.data.length.to_s.length + 1
+    @screen_map = []
+
+    @buffer.data.each_with_index do |line, buf_y|
+      chunks = line.chomp.chars.each_slice(content_width).map(&:join)
+      chunks = [""] if chunks.empty?
+
+      chunks.each_with_index do |chunk, sub_idx|
+        @screen_map << { buffer_line: buf_y, sub_line: sub_idx, text: chunk }
+      end
+    end
+  end
+
+  def screen_row_for(buf_x, buf_y)
+    row = 0
+    @buffer.data[0...buf_y].each do |line|
+      row += [(line.chomp.length.to_f / content_width).ceil, 1].max
+    end
+    row += buf_x / content_width
+    row
   end
 
   def insert(c)
@@ -168,147 +205,119 @@ class BufferDisplay
       @cursor.move(:right)
     end
   end
-  
+
   def backspace
     @buffer.remove(@cursor.x, @cursor.y)
-    cursor.move(:left)  
+    cursor.move(:left)
   end
-  
+
   def remove_char
     @buffer.remove(@cursor.x, @cursor.y)
   end
-  
+
   def replace_char(c)
     @buffer.replace_char(@cursor.x, @cursor.y, c)
   end
-  
+
   def remove_line
     @buffer.remove_line(@cursor.y)
   end
-  
+
   def move_cursor_to_end
-    @cursor.x = @buffer.data[@cursor.y].length
-  end
-
-  def draw_box(x, y, width, height)
-    # Corners
-    @display.write_at(x,             y,              "┌")
-    @display.write_at(x + width - 1, y,              "┐")
-    @display.write_at(x,             y + height - 1, "└")
-    @display.write_at(x + width - 1, y + height - 1, "┘")
-
-    # Top and bottom edges
-    (1...width - 1).each do |i|
-      @display.write_at(x + i, y,              "─")
-      @display.write_at(x + i, y + height - 1, "─")
-    end
-
-    # Left and right edges
-    (1...height - 1).each do |j|
-      @display.write_at(x,             y + j, "│")
-      @display.write_at(x + width - 1, y + j, "│")
-    end
+    @cursor.x = @buffer.data[@cursor.y].chomp.length
   end
 
   def render
-     # draw_box(@position[0], @position[1], @size[0], @size[1]) 
-     start_x = 1
-     start_y = 1
-     x = @position[0] + start_x
-     y = @position[1] + start_y
-     
-     @gutter_width = @buffer.data.length.to_s.length + 1
-    
-     log("Rendering buffer from #{@top_line} to #{@size[1] + @top_line}") 
-     
-     lines_rendered = 0 
-     @buffer.data[@top_line..@top_line + @size[1]].each do |line|
-       line.chars.each_slice(@size[0]-@gutter_width).map(&:join).each do |wrapped_line|
-         # log("Writing: #{wrapped_line}")
-         gutter = lines_rendered.to_s.rjust(@gutter_width)
-         @display.write_at(x, y, "\e[2m#{gutter}\e[0m #{wrapped_line}")
-         y += 1
-         lines_rendered += 1
-         if lines_rendered >= @size[1]-2
-           # log "Breaking with #{lines_rendered}"
-          end
-        end
-     end
+    @size = [$cols, $rows - 2]
+    build_screen_map
 
-     move_cursor
+    # Clamp cursor before computing screen position
+    clamp_cursor
+
+    # Scroll to keep cursor visible
+    cursor_screen_row = screen_row_for(@cursor.x, @cursor.y)
+    if cursor_screen_row >= @top_row + visible_rows
+      @top_row = cursor_screen_row - visible_rows + 1
+    end
+    if cursor_screen_row < @top_row
+      @top_row = cursor_screen_row
+    end
+
+    # Draw visible rows
+    visible = @screen_map[@top_row, visible_rows] || []
+    visible.each_with_index do |entry, i|
+      screen_y = @position[1] + 1 + i
+      if entry[:sub_line] == 0
+        gutter = (entry[:buffer_line] + 1).to_s.rjust(@gutter_width)
+      else
+        gutter = " " * @gutter_width
+      end
+      @display.write_at(1, screen_y, "\e[2m#{gutter}\e[0m #{entry[:text]}")
+    end
+
+    move_cursor
+  end
+
+  def clamp_cursor
+    @cursor.y = @cursor.y.clamp(0, [@buffer.data.length - 1, 0].max)
+    line_len = (@buffer.data[@cursor.y] || "\n").chomp.length
+    max_x = [line_len - 1, 0].max
+    max_x = line_len if @editor.mode == :insert
+    @cursor.x = @cursor.x.clamp(0, max_x)
   end
 
   def move_cursor
-    @cursor.x = 0 if @cursor.x < 0
-    @cursor.y = 0 if @cursor.y < 0
-    
-    # log "Length: #{@buffer.data.length}"
-    
-    @cursor.y = @buffer.data.length - 1 if @cursor.y > @buffer.data.length - 1
-    
-    # log "Cursor line: #{@buffer.data[@cursor.y]} (#{@buffer.data[@cursor.y].length})"
-    
-    @cursor.x = @buffer.data[@cursor.y].length - 1 if @cursor.x > @buffer.data[@cursor.y].length - 1
-    
-    @display.move_cursor(@position[0] + @cursor.x + @gutter_width + 2, @position[1] + @cursor.y + 1)
+    clamp_cursor
+
+    cursor_screen_row = screen_row_for(@cursor.x, @cursor.y) - @top_row
+    screen_col = (@cursor.x % content_width) + @gutter_width + 2
+
+    @display.move_cursor(screen_col, @position[1] + 1 + cursor_screen_row)
   end
-  
+
   def set_mode(mode)
-    $mode = mode
-    @cursor.set_mode($mode == :insert ? :pipe : :block)
+    @editor.mode = mode
+    @cursor.set_mode(@editor.mode == :insert ? :pipe : :block)
   end
-  
+
   def save(filename = nil)
     if @buffer.save
-      $status_message = "Saved!"
+      @editor.status_message = "Saved!"
     else
-      $status_message = "Error saving!"
+      @editor.status_message = "Error saving!"
     end
-    
-    
   end
 
 end
 
 @display = Display.new
-
+@editor = Editor.new
 @buffer = Buffer.new("test.txt")
-
-@buffer_display = BufferDisplay.new(@display, @buffer)
-
-
-
+@buffer_display = BufferDisplay.new(@display, @buffer, @editor)
 
 def display
-  # log("Render")
   @display.clear_screen
-  @display.write_at(1, 1, "[re editor] [#{@buffer_display.cursor.x}, #{@buffer_display.cursor.y}] #{$status_message}")
+  @display.write_at(1, 1, "[re editor] [#{@buffer_display.cursor.x}, #{@buffer_display.cursor.y}] #{@editor.status_message}")
   @display.write_at(1, 2, "─" * $cols)
- 
-  if $mode == :command 
-    modeline = "[command: #{$command}]"
+
+  if @editor.mode == :command
+    modeline = "[command: #{@editor.command}]"
   else
-    modeline = "[#{$mode.to_s}]─"
+    modeline = "[#{@editor.mode}]─"
   end
-  
-  modeline << "(#{$repeat_count})─" if $repeat_count != ""
-  
-  
+
+  modeline << "(#{@editor.repeat_count})─" if @editor.repeat_count != ""
   modeline += "─" * ($cols - modeline.length)
-  
+
   @display.write_at(1, $rows, modeline)
-  
-  
-  # $status_message = ""
 
   @buffer_display.render
 end
 
-
 def read_key
   $stdin.noecho do |io|
     io.raw do
-      input = io.readpartial(4)  # read up to 4 bytes (arrows are 3-byte sequences)
+      input = io.readpartial(4)
       case input
       when "\e[A"     then :up
       when "\e[B"     then :down
@@ -325,13 +334,8 @@ def read_key
   end
 end
 
-def repeater(&block)
-  [($repeat_count.to_i), 1].max.times { block.call }
-  $repeat_count = ""
-end
-
 def execute_command
-  case $command
+  case @editor.command
   when "w"
     @buffer_display.save
   when "q"
@@ -339,36 +343,53 @@ def execute_command
   end
 end
 
-loop do
-  display
-  key = read_key
-  # puts "Got: #{key.inspect}"
-  break if key == :ctrl_c
- 
-  if $replace_mode
-    if key.is_a?(String) && key.length == 1 && key.match?(/[[:print:]]/)
-     @buffer_display.replace_char(key)
+def execute_operator(operator, motion)
+  case operator
+  when "d"
+    case motion
+    when "d"
+      @editor.repeater { @buffer_display.remove_line }
     end
-   $replace_mode = false
-  elsif $mode == :command
+  end
+end
+
+def handle_key(key)
+  # Arrows work in every mode
+  if [:left, :right, :up, :down].include?(key)
+    @buffer_display.cursor.move(key)
+    return
+  end
+
+  case @editor.mode
+  when :replace
+    if key.is_a?(String) && key.length == 1 && key.match?(/[[:print:]]/)
+      @buffer_display.replace_char(key)
+    end
+    @editor.mode = :normal
+
+  when :operator_pending
+    execute_operator(@editor.operator, key)
+    @editor.operator = nil
+    @editor.mode = :normal
+
+  when :command
     case key
     when :escape
-      $mode = :normal
+      @editor.mode = :normal
     when :enter
       execute_command
-      $mode = :normal
+      @editor.mode = :normal
     when :backspace
-      $command.chop!
+      @editor.command.chop!
     else
-      $command << key if key.is_a?(String) && key.length == 1 && key.match?(/[[:print:]]/)
+      @editor.command << key if key.is_a?(String) && key.length == 1 && key.match?(/[[:print:]]/)
     end
-  elsif $mode == :normal
+
+  when :normal
     case key
-    when :left, :right, :up, :down
-      @buffer_display.cursor.move(key)
     when ":"
-      $mode = :command
-      $command = ""
+      @editor.mode = :command
+      @editor.command = ""
     when :ctrl_s
       @buffer_display.save
     when "i"
@@ -378,30 +399,23 @@ loop do
       @buffer_display.set_mode(:insert)
     when "A"
       @buffer_display.move_cursor_to_end
-      @buffer_display.set_mode(:insert)      
+      @buffer_display.set_mode(:insert)
     when "0".."9"
-      $repeat_count = "#{$repeat_count}#{key}"
-      $repeat_count = "" if $repeat_count == "0"
+      @editor.repeat_count = "#{@editor.repeat_count}#{key}"
+      @editor.repeat_count = "" if @editor.repeat_count == "0"
     when :escape
-      $repeat_count = ""
+      @editor.repeat_count = ""
     when "x"
-      repeater { @buffer_display.remove_char }
+      @editor.repeater { @buffer_display.remove_char }
     when "d"
-      if $last_key == "d"
-        repeater { @buffer_display.remove_line }
-        $last_key = nil
-      else
-        $last_key = "d"
-      end
+      @editor.operator = "d"
+      @editor.mode = :operator_pending
     when "r"
-      $replace_mode = true
-    else
-      
+      @editor.mode = :replace
     end
-  elsif $mode == :insert
+
+  when :insert
     case key
-    when :left, :right, :up, :down
-      @buffer_display.cursor.move(key)
     when :enter
       @buffer_display.insert("\n")
     when :backspace
@@ -409,13 +423,14 @@ loop do
     when :escape
       @buffer_display.set_mode(:normal)
     else
-      @buffer_display.insert(key) 
-    end    
+      @buffer_display.insert(key)
+    end
   end
-  
-  
+end
+
+loop do
   display
-
-
-
+  key = read_key
+  break if key == :ctrl_c
+  handle_key(key)
 end
